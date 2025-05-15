@@ -19,4 +19,68 @@ Ideal for learning socket programming, game development, and client-server archi
 - Dynamic server IP input for clients.
 - Authentication and secure communication.
 
+**Modular Function diagram**
++------------------------------------+
+|          game_server.c             |
+|------------------------------------|
+| main()                             |
+|   Initializes TCP server, handles  |
+|   client connections using select  |
+|                                    |
+|   +--> send_to_player()            |
+|   |     Sends message to a client  |
+|   +--> broadcast()                 |
+|   |     Sends message to both      |
+|   |     players in a session       |
+|   |                                |
+|   +--> runWordleGame()             |
+|   |     Manages Wordle game logic  |
+|   +--> runChessGame()              |
+|   |     Manages Chess game logic   |
+|   |     +--> init_chess_board()    |
+|   |     +--> get_chess_board_string|
+|   |     +--> move_piece()          |
+|   |     +--> is_legal_move()       |
+|   |     +--> check_chess_winner()  |
+|   |     +--> send_chess_board()    |
+|   +--> runSnakeLadderGame()        |
+|   |     Manages Snake & Ladder     |
+|   |     +--> send_sl_board()       |
+|   |     +--> send_sl_positions()   |
+|   +--> runTicTacToeGame()          |
+|   |     Manages Tic-Tac-Toe        |
+|   |     +--> init_ttt_board()      |
+|   |     +--> get_ttt_board_display |
+|   |     +--> check_ttt_winner()    |
+|   |     +--> is_ttt_draw()         |
+|   |     +--> broadcast_ttt_board() |
+|   +--> runRockPaperScissorGame()   |
+|         Manages Rock Paper Scissors|
+|         +--> get_rps_winner()      |
++------------------------------------+
+          | TCP Communication |
+          v                  ^
++------------------------------------+
+|          game_client.c             |
+|------------------------------------|
+| main()                             |
+|   Connects to server, displays     |
+|   game selection menu              |
+|                                    |
+|   +--> read_line()                 |
+|   |     Reads newline-terminated   |
+|   |     messages from server       |
+|   +--> playWordle()                |
+|   |     Handles Wordle interface   |
+|   +--> playChess()                 |
+|   |     Handles Chess interface    |
+|   +--> playSnakeLadder()           |
+|   |     Handles Snake & Ladder     |
+|   |     +--> display_sl_board()    |
+|   +--> playTicTacToe()             |
+|   |     Handles Tic-Tac-Toe        |
+|   +--> playRockPaperScissor()      |
+|         Handles Rock Paper Scissors|
++------------------------------------+
+
 **License**: MIT (or specify your preferred license).
