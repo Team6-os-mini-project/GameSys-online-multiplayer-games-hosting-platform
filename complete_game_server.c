@@ -251,7 +251,9 @@ void send_chess_board(GameSession *session) {
     char board_str[BUFFER_SIZE];
     bzero(board_str, BUFFER_SIZE);
     get_chess_board_string(&session->chessBoard, board_str);
+    printf("[DEBUG] Sending chess board to players %d and %d\n", session->player1_fd, session->player2_fd);
     broadcast(session, board_str);
+    usleep(10000); // 10ms delay to ensure client processes board
 }
 
 int is_path_clear(ChessBoard* board, int fromX, int fromY, int toX, int toY) {
@@ -381,6 +383,8 @@ void runChessGame(GameSession *session) {
     char msg[50];
     snprintf(msg, 50, "\033[1;33m🎉 CHESS GAME STARTED! 🎉\033[0m\n");
     broadcast(session, msg);
+    printf("[DEBUG] Chess game started for players %d and %d\n", session->player1_fd, session->player2_fd);
+    usleep(10000); // 10ms delay
     send_chess_board(session);
     send_to_player(session->player1_fd, "TURN\n");
 
@@ -406,7 +410,10 @@ void runChessGame(GameSession *session) {
                 snprintf(move_msg, 50, "\033[1;36mMOVE:Player %d (%c) moved %s to %s\033[0m\n", 
                         session->chessTurn + 1, session->chessTurn == 0 ? 'W' : 'B', pieceId, to);
                 broadcast(session, move_msg);
+                usleep(10000); // 10ms delay
                 broadcast(session, "BOARD_UPDATE\n");
+                printf("[DEBUG] Sending board update after move %s to %s\n", pieceId, to);
+                usleep(10000); // 10ms delay
                 send_chess_board(session);
                 if (moveResult == 2) {
                     char win_msg[50];
@@ -429,9 +436,12 @@ void runChessGame(GameSession *session) {
                 }
                 session->chessTurn = (session->chessTurn + 1) % 2;
                 int next_fd = session->chessTurn == 0 ? session->player1_fd : session->player2_fd;
+                printf("[DEBUG] Sending TURN to player %d\n", session->chessTurn + 1);
+                usleep(10000); // 10ms delay
                 send_to_player(next_fd, "TURN\n");
             } else {
                 send_to_player(current_fd, feedback);
+                usleep(10000); // 10ms delay
                 send_to_player(current_fd, "\nTURN\n");
             }
         }
