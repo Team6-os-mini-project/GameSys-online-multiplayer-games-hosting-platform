@@ -46,7 +46,7 @@ void display_sl_board(char *board_msg) {
         token = strtok(NULL, ",");
     }
     printf("│\n└─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘\n");
-    fflush(stdout); // Ensure board is rendered immediately
+    fflush(stdout);
 }
 
 void playWordle(int sockfd) {
@@ -56,7 +56,7 @@ void playWordle(int sockfd) {
         bzero(buff, MAX);
         read(sockfd, buff, sizeof(buff));
         printf("%s", buff);
-        fflush(stdout); // Ensure message is displayed immediately
+        fflush(stdout);
         if (strstr(buff, "Game over") || strstr(buff, "wins!") || strstr(buff, "disconnected")) {
             break;
         }
@@ -64,7 +64,7 @@ void playWordle(int sockfd) {
             bzero(buff, MAX);
             n = 0;
             printf("Your guess: ");
-            fflush(stdout); // Ensure prompt is displayed before input
+            fflush(stdout);
             while ((buff[n++] = getchar()) != '\n');
             buff[n-1] = '\0';
             write(sockfd, buff, sizeof(buff));
@@ -79,26 +79,35 @@ void playWordle(int sockfd) {
 
 void playChess(int sockfd) {
     char buffer[BUFFER_SIZE];
+    int expecting_board = 0;
     while (1) {
         bzero(buffer, BUFFER_SIZE);
         int n = read(sockfd, buffer, BUFFER_SIZE);
         if (n <= 0) {
             printf("\033[1;31mServer disconnected\033[0m\n");
-            fflush(stdout); // Ensure disconnection message is displayed
+            fflush(stdout);
             break;
         }
         buffer[n] = '\0';
+        printf("[DEBUG] Received message: %s\n", buffer);
+        fflush(stdout);
+
         if (strncmp(buffer, "WELCOME:", 8) == 0) {
             printf("%s\n", buffer);
-            fflush(stdout); // Ensure welcome message is displayed
+            fflush(stdout);
         } else if (strncmp(buffer, "MOVE:", 5) == 0) {
             printf("%s\n", buffer);
-            fflush(stdout); // Ensure move message is displayed
+            fflush(stdout);
         } else if (strncmp(buffer, "BOARD_UPDATE", 12) == 0) {
+            printf("[DEBUG] Received BOARD_UPDATE, expecting board next\n");
+            fflush(stdout);
+            expecting_board = 1;
             continue;
         } else if (strncmp(buffer, "TURN", 4) == 0) {
+            printf("[DEBUG] Received TURN\n");
+            fflush(stdout);
             printf("\n\033[1;36m♟ Your Turn! ♟\033[0m Enter move (e.g., 'P1 e5', 'K1B c6'): ");
-            fflush(stdout); // Ensure turn prompt is displayed immediately
+            fflush(stdout);
             char move[10];
             fgets(move, sizeof(move), stdin);
             move[strcspn(move, "\n")] = '\0';
@@ -107,14 +116,22 @@ void playChess(int sockfd) {
             write(sockfd, cmd, strlen(cmd));
         } else if (strncmp(buffer, "WINNER:", 7) == 0) {
             printf("\n\033[1;32m🏆 %s 🏆\033[0m\n", buffer + 7);
-            fflush(stdout); // Ensure winner message is displayed
+            fflush(stdout);
             break;
         } else if (strncmp(buffer, "Invalid", 7) == 0) {
             printf("%s\n", buffer);
-            fflush(stdout); // Ensure invalid move message is displayed
-        } else {
+            fflush(stdout);
+        } else if (expecting_board) {
+            printf("[DEBUG] Displaying chess board:\n");
+            fflush(stdout);
             printf("%s", buffer);
-            fflush(stdout); // Ensure board or other messages are displayed
+            fflush(stdout);
+            expecting_board = 0;
+        } else {
+            printf("[DEBUG] Unexpected message, treating as board:\n");
+            fflush(stdout);
+            printf("%s", buffer);
+            fflush(stdout);
         }
     }
 }
@@ -126,24 +143,24 @@ void playSnakeLadder(int sockfd) {
         int n = read_line(sockfd, buff, BUFFER_SIZE);
         if (n <= 0) {
             printf("Server disconnected\n");
-            fflush(stdout); // Ensure disconnection message is displayed
+            fflush(stdout);
             break;
         }
         if (strncmp(buff, "WELCOME:", 8) == 0) {
             sscanf(buff + 8, "Player %d", &player_id);
             printf("You are Player %d\n", player_id);
-            fflush(stdout); // Ensure player ID is displayed
+            fflush(stdout);
         } else if (strncmp(buff, "BOARD:", 6) == 0) {
             display_sl_board(buff);
         } else if (strncmp(buff, "GAME_START", 10) == 0) {
             printf("\n\033[1;33mGame Started!\033[0m\n");
-            fflush(stdout); // Ensure game start message is displayed
+            fflush(stdout);
         } else if (strncmp(buff, "NEW_PLAYER:", 11) == 0) {
             printf("%s", buff + 11);
-            fflush(stdout); // Ensure new player message is displayed
+            fflush(stdout);
         } else if (strncmp(buff, "TURN", 4) == 0) {
             printf("\n\033[1;36mYour Turn!\033[0m Enter 'roll' to roll the dice: ");
-            fflush(stdout); // Ensure turn prompt is displayed immediately
+            fflush(stdout);
             char input[10];
             fgets(input, 10, stdin);
             if (strncmp(input, "roll", 4) == 0) write(sockfd, "ROLL\n", 5);
@@ -151,17 +168,17 @@ void playSnakeLadder(int sockfd) {
             int p_id, roll;
             sscanf(buff + 7, "P%d=%d", &p_id, &roll);
             printf("Player %d rolled a %d\n", p_id, roll);
-            fflush(stdout); // Ensure roll message is displayed
+            fflush(stdout);
         } else if (strncmp(buff, "SNAKE:", 6) == 0) {
             int p_id, from, to;
             sscanf(buff + 6, "P%d=%d-%d", &p_id, &from, &to);
             printf("\033[31mPlayer %d slid down a snake from %d to %d\033[0m\n", p_id, from, to);
-            fflush(stdout); // Ensure snake message is displayed
+            fflush(stdout);
         } else if (strncmp(buff, "LADDER:", 7) == 0) {
             int p_id, from, to;
             sscanf(buff + 7, "P%d=%d-%d", &p_id, &from, &to);
             printf("\033[32mPlayer %d climbed a ladder from %d to %d\033[0m\n", p_id, from, to);
-            fflush(stdout); // Ensure ladder message is displayed
+            fflush(stdout);
         } else if (strncmp(buff, "POSITIONS:", 10) == 0) {
             printf("\n\033[1mPlayer Positions:\033[0m\n");
             char *token = strtok(buff + 10, ",");
@@ -171,10 +188,10 @@ void playSnakeLadder(int sockfd) {
                 printf("Player \033[1m%d\033[0m: %d\n", p_id, pos);
                 token = strtok(NULL, ",");
             }
-            fflush(stdout); // Ensure positions are displayed
+            fflush(stdout);
         } else if (strncmp(buff, "WINNER:", 7) == 0) {
             printf("\n\033[1;32m%s wins!\033[0m\n", buff + 7);
-            fflush(stdout); // Ensure winner message is displayed
+            fflush(stdout);
             break;
         }
     }
@@ -187,15 +204,15 @@ void playTicTacToe(int sockfd) {
         int n = read(sockfd, buffer, sizeof(buffer));
         if (n <= 0) {
             printf("Server disconnected\n");
-            fflush(stdout); // Ensure disconnection message is displayed
+            fflush(stdout);
             break;
         }
         printf("%s", buffer);
-        fflush(stdout); // Ensure board or message is displayed
+        fflush(stdout);
         if (strstr(buffer, "Your turn")) {
             memset(buffer, 0, sizeof(buffer));
             printf("Enter row and col (0-2 0-2): ");
-            fflush(stdout); // Ensure prompt is displayed before input
+            fflush(stdout);
             fgets(buffer, sizeof(buffer), stdin);
             buffer[strcspn(buffer, "\n")] = 0;
             write(sockfd, buffer, strlen(buffer));
@@ -210,7 +227,7 @@ void playRockPaperScissor(int sockfd) {
         bzero(buff, MAX);
         read(sockfd, buff, sizeof(buff));
         printf("%s", buff);
-        fflush(stdout); // Ensure message is displayed
+        fflush(stdout);
         if (strstr(buff, "Game over") || strstr(buff, "wins the game")) {
             break;
         }
@@ -218,13 +235,13 @@ void playRockPaperScissor(int sockfd) {
             bzero(buff, MAX);
             n = 0;
             printf("Your move: ");
-            fflush(stdout); // Ensure prompt is displayed before input
+            fflush(stdout);
             while ((buff[n++] = getchar()) != '\n');
             buff[n - 1] = '\0';
             write(sockfd, buff, sizeof(buff));
             if (strncmp(buff, "exit", 4) == 0) {
                 printf("Client exiting...\n");
-                fflush(stdout); // Ensure exit message is displayed
+                fflush(stdout);
                 break;
             }
         }
@@ -232,6 +249,7 @@ void playRockPaperScissor(int sockfd) {
 }
 
 int main() {
+    setvbuf(stdout, NULL, _IONBF, 0); // Disable stdout buffering
     int sockfd;
     struct sockaddr_in servaddr;
     char buffer[BUFFER_SIZE];
@@ -241,24 +259,24 @@ int main() {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         printf("Socket creation failed...\n");
-        fflush(stdout); // Ensure error message is displayed
+        fflush(stdout);
         exit(0);
     }
     printf("\033[1;34mSocket successfully created.\033[0m\n");
-    fflush(stdout); // Ensure success message is displayed
+    fflush(stdout);
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("172.30.0.248");
+    servaddr.sin_addr.s_addr = inet_addr("172.16.98.157");
     servaddr.sin_port = htons(PORT);
 
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
         printf("\033[1;31mConnection to server failed...\033[0m\n");
-        fflush(stdout); // Ensure error message is displayed
+        fflush(stdout);
         exit(0);
     }
     printf("\033[1;32mConnected to server!\033[0m\n");
-    fflush(stdout); // Ensure success message is displayed
+    fflush(stdout);
 
     printf("\n\033[1;36m=====================================\033[0m\n");
     printf("\033[1;33m    Welcome to Game Studios! 🎮    \033[0m\n");
@@ -270,7 +288,7 @@ int main() {
     printf("  \033[1;34m4.\033[0m Tic Tac Toe\n");
     printf("  \033[1;34m5.\033[0m Rock Paper Scissors\n");
     printf("\n\033[1mEnter your choice (1-5):\033[0m ");
-    fflush(stdout); // Ensure welcome UI and prompt are displayed
+    fflush(stdout);
 
     char choice[10];
     fgets(choice, sizeof(choice), stdin);
@@ -285,7 +303,7 @@ int main() {
         case 5: game_name = "ROCK_PAPER_SCISSOR"; break;
         default:
             printf("\033[1;31mInvalid choice! Exiting.\033[0m\n");
-            fflush(stdout); // Ensure error message is displayed
+            fflush(stdout);
             close(sockfd);
             return 0;
     }
@@ -294,18 +312,18 @@ int main() {
     snprintf(cmd, sizeof(cmd), "GAME:%s\n", game_name);
     write(sockfd, cmd, strlen(cmd));
     printf("\n\033[1;33mWaiting for another player to join %s...\033[0m\n", game_name);
-    fflush(stdout); // Ensure waiting message is displayed
+    fflush(stdout);
 
     while (!game_selected) {
         int n = read_line(sockfd, buffer, BUFFER_SIZE);
         if (n <= 0) {
             printf("\033[1;31mServer disconnected\033[0m\n");
-            fflush(stdout); // Ensure disconnection message is displayed
+            fflush(stdout);
             break;
         }
         if (strncmp(buffer, "WAITING", 7) == 0) {
             printf(".");
-            // No fflush here to avoid excessive flushing in loop
+            fflush(stdout);
             sleep(1);
             continue;
         } else if (strncmp(buffer, "START:", 6) == 0) {
@@ -316,10 +334,10 @@ int main() {
             }
         } else if (strncmp(buffer, "Connected as Player", 19) == 0) {
             printf("\n%s", buffer);
-            fflush(stdout); // Ensure player connection message is displayed
+            fflush(stdout);
         } else if (strncmp(buffer, "ERROR:", 6) == 0) {
             printf("\n\033[1;31m%s\033[0m\n", buffer + 6);
-            fflush(stdout); // Ensure error message is displayed
+            fflush(stdout);
             break;
         }
     }
@@ -334,6 +352,6 @@ int main() {
 
     close(sockfd);
     printf("\033[1;34mDisconnected from server.\033[0m\n");
-    fflush(stdout); // Ensure disconnection message is displayed
+    fflush(stdout);
     return 0;
 }
